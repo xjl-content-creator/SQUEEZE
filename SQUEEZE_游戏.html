@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SQUEEZE 🟡</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, #c8ecf5 0%, #d8f5e8 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #gameWrapper {
+    position: relative;
+    width: 390px;
+    height: 700px;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 24px;
+    box-shadow: 0 0 40px rgba(150,200,255,0.3), 0 20px 60px rgba(0,0,0,0.12);
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    transition: opacity 0.3s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* Main Menu */
+  #menuScreen {
+    background: linear-gradient(160deg, #dff3fb 0%, #eaf8f2 60%, #f5fbea 100%);
+  }
+  .ball-logo {
+    font-size: 80px;
+    animation: float 2s ease-in-out infinite;
+    filter: drop-shadow(0 8px 16px rgba(255,180,80,0.35));
+    line-height: 1;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-12px) scale(1.05); }
+  }
+  .game-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 64px;
+    color: #3dbfa0;
+    letter-spacing: 4px;
+    text-shadow: 0 4px 0 #e05c00, 0 8px 20px rgba(61,191,160,0.2);
+    line-height: 1;
+  }
+  .tagline {
+    font-size: 15px;
+    color: #7a8fa6;
+    text-align: center;
+    letter-spacing: 0.5px;
+    max-width: 260px;
+  }
+  .start-btn {
+    margin-top: 12px;
+    background: #3dbfa0;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 16px 52px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 26px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1e8a70, 0 12px 30px rgba(61,191,160,0.25);
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .start-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #1e8a70, 0 6px 15px rgba(61,191,160,0.15);
+  }
+  .hint {
+    font-size: 13px;
+    color: #b0c4d8;
+  }
+
+  /* Death Screen */
+  #deathScreen {
+    background: rgba(255,248,240,0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+  }
+  .death-emoji {
+    font-size: 64px;
+    animation: wobble 0.5s ease-out;
+  }
+  @keyframes wobble {
+    0% { transform: scale(0) rotate(-20deg); }
+    60% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .death-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 36px;
+    color: #ff6b6b;
+    text-shadow: 0 3px 0 #ffb3b3;
+  }
+  .score-card {
+    background: rgba(255,255,255,0.8);
+    border: 2px solid rgba(255,180,120,0.3);
+    border-radius: 20px;
+    padding: 20px 40px;
+    text-align: center;
+    width: 280px;
+    box-shadow: 0 4px 20px rgba(61,191,160,0.1);
+  }
+  .score-label {
+    font-size: 12px;
+    color: #b0a090;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .score-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 52px;
+    color: #3dbfa0;
+    line-height: 1;
+  }
+  .best-score {
+    font-size: 14px;
+    color: #5cc8a0;
+    font-weight: 700;
+  }
+  .percentile {
+    font-size: 13px;
+    color: #a0b0c0;
+    margin-top: 4px;
+  }
+  .retry-btn {
+    background: #3dbfa0;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 48px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #1e8a70;
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .retry-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #1e8a70;
+  }
+  .new-record {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: #5cc8a0;
+    animation: pulse 0.8s ease-in-out infinite alternate;
+  }
+  .lang-btn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: rgba(255,255,255,0.7);
+    border: 1.5px solid rgba(61,191,160,0.35);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #3dbfa0;
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lang-btn:hover { background: rgba(255,255,255,0.95); }
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <canvas id="gameCanvas" width="390" height="700"></canvas>
+
+  <!-- Lang toggle (always visible) -->
+  <button class="lang-btn" id="langBtn">EN</button>
+
+  <!-- Main Menu -->
+  <div class="screen" id="menuScreen">
+    <div class="ball-logo">🟡</div>
+    <div class="game-title">SQUEEZE</div>
+    <div class="tagline" id="tagline">按住屏幕让球变大，松开让球变小<br>在缝隙中穿行——别爆炸！</div>
+    <button class="start-btn" id="startBtn">开始游戏</button>
+    <div class="hint" id="hint">🖱 按住鼠标 / 长按屏幕</div>
+  </div>
+
+  <!-- Death Screen -->
+  <div class="screen hidden" id="deathScreen">
+    <div class="death-emoji" id="deathEmoji">💥</div>
+    <div class="death-title" id="deathTitle">球爆了！</div>
+    <div class="score-card">
+      <div class="score-label" id="scoreLabel">本局得分</div>
+      <div class="score-value" id="finalScore">0</div>
+      <div class="best-score" id="bestScoreDisplay"></div>
+      <div class="percentile" id="percentileDisplay"></div>
+    </div>
+    <div class="new-record hidden" id="newRecord">🏆 新纪录！</div>
+    <button class="retry-btn" id="retryBtn">再来一次！</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── i18n ───
+const LANGS = {
+  zh: {
+    tagline: '按住屏幕让球变大，松开让球变小<br>在缝隙中穿行——别爆炸！',
+    hint: '🖱 按住鼠标 / 长按屏幕',
+    startBtn: '开始游戏',
+    deathTitle: '球爆了！',
+    scoreLabel: '本局得分',
+    newRecord: '🏆 新纪录！',
+    retryBtn: '再来一次！',
+    bestPrefix: '最高纪录：',
+    bestHUD: '最高',
+    percentile: (pct) => `你比 ${pct}% 的玩家强！`,
+    langToggle: 'EN',
+  },
+  en: {
+    tagline: 'Hold to grow the ball, release to shrink<br>Squeeze through the gaps — don\'t pop!',
+    hint: '🖱 Hold mouse / hold screen',
+    startBtn: 'Play',
+    deathTitle: 'You Popped!',
+    scoreLabel: 'Score',
+    newRecord: '🏆 New Record!',
+    retryBtn: 'Try Again!',
+    bestPrefix: 'Best: ',
+    bestHUD: 'Best',
+    percentile: (pct) => `Better than ${pct}% of players!`,
+    langToggle: '中文',
+  }
+};
+let lang = localStorage.getItem('squeezeLang') || 'zh';
+
+function applyLang() {
+  const t = LANGS[lang];
+  document.getElementById('tagline').innerHTML = t.tagline;
+  document.getElementById('hint').textContent = t.hint;
+  document.getElementById('startBtn').textContent = t.startBtn;
+  document.getElementById('deathTitle').textContent = t.deathTitle;
+  document.getElementById('scoreLabel').textContent = t.scoreLabel;
+  document.getElementById('newRecord').textContent = t.newRecord;
+  document.getElementById('retryBtn').textContent = t.retryBtn;
+  document.getElementById('langBtn').textContent = t.langToggle;
+}
+applyLang();
+
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('squeezeLang', lang);
+  applyLang();
+  // Refresh death screen text if visible
+  if (state === 'dead') showDeathScreen();
+});
+
+// ─── Game State ───
+let state = 'menu'; // menu | playing | dead
+let pressing = false;
+let score = 0;
+let bestScore = parseInt(localStorage.getItem('squeezeBest') || '0');
+let gameTime = 0;
+let animFrame;
+let particles = [];
+let bgHue = 220;
+
+// ─── Ball ───
+const ball = {
+  x: 100,
+  y: H / 2,
+  vy: 0,          // vertical velocity
+  r: 28,
+  minR: 16,
+  maxR: 58,
+  targetR: 28,
+  face: 'normal',
+  squishX: 1,
+  squishY: 1,
+};
+
+// ─── Obstacles ───
+let obstacles = [];
+let spawnTimer = 0;
+const SPAWN_INTERVAL_START = 160; // frames
+let lastObstacleX = W + 100;
+
+// ─── Particles ───
+function spawnParticles(x, y, color, count = 16) {
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+    const speed = 3 + Math.random() * 7;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 4 + Math.random() * 8,
+      alpha: 1,
+      color,
+      decay: 0.03 + Math.random() * 0.03
+    });
+  }
+}
+
+function spawnPassParticles(x, y) {
+  const colors = ['#FFE135','#64ffda','#ff9f43','#ff6b6b'];
+  for (let i = 0; i < 5; i++) {
+    particles.push({
+      x: x + Math.random() * 30 - 15,
+      y: y + Math.random() * 40 - 20,
+      vx: -1 - Math.random() * 2,
+      vy: -2 + Math.random() * 4,
+      r: 3 + Math.random() * 5,
+      alpha: 1,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      decay: 0.04
+    });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.alpha > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2;
+    p.alpha -= p.decay;
+    p.r *= 0.97;
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ─── Obstacle ───
+function createObstacle() {
+  const speed = Math.min(2.0 + gameTime * 0.0006, 5.0);
+  const gapH = Math.max(160 - gameTime * 0.03, 100);
+  const gapY = 80 + Math.random() * (H - 160 - gapH);
+  return {
+    x: W + 30,
+    width: 52,
+    gapY,
+    gapH,
+    speed,
+    scored: false,
+    color: `hsl(${168 + Math.random()*18}, 48%, 58%)`,
+    accent: `hsl(${168 + Math.random()*18}, 55%, 74%)`,
+  };
+}
+
+function spawnObstacle() {
+  obstacles.push(createObstacle());
+}
+
+// ─── Background ───
+function drawBackground() {
+  bgHue += 0.008;
+  // Sky gradient - light blue to soft lavender
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#dff3fb');
+  grad.addColorStop(0.5, '#eaf6fb');
+  grad.addColorStop(1, '#f2fbf5');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, W, H, 24);
+  ctx.fill();
+
+  // Subtle polka dots for texture
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < 12; i++) {
+    const px = ((i * 137 + gameTime * 0.3) % W);
+    const py = ((i * 89 + 40) % (H - 80)) + 40;
+    const pr = 6 + (i % 3) * 4;
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ─── Draw Ball ───
+function drawBall() {
+  const { x, y, r, squishX, squishY } = ball;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(squishX, squishY);
+
+  // Soft glow (matches ball color)
+  const glow = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 1.6);
+  glow.addColorStop(0, 'rgba(255,210,100,0.2)');
+  glow.addColorStop(1, 'rgba(255,210,100,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body gradient — warm pastel yellow
+  const bodyGrad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 0, 0, 0, r);
+  bodyGrad.addColorStop(0, '#FFF9C4');
+  bodyGrad.addColorStop(0.55, '#FFE57A');
+  bodyGrad.addColorStop(1, '#FFCA28');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Shine
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.28, -r * 0.32, r * 0.22, r * 0.14, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes — offset based on face
+  const eyeOffsetY = ball.face === 'squished' ? r * 0.05 : -r * 0.1;
+  const eyeSpread = ball.face === 'squished' ? r * 0.28 : r * 0.22;
+  const eyeSize = ball.face === 'squished' ? r * 0.11 : r * 0.13;
+
+  // left eye
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.ellipse(-eyeSpread, eyeOffsetY, eyeSize, ball.face === 'squished' ? eyeSize * 0.5 : eyeSize, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // right eye
+  ctx.beginPath();
+  ctx.ellipse(eyeSpread, eyeOffsetY, eyeSize, ball.face === 'squished' ? eyeSize * 0.5 : eyeSize, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye shine
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath();
+  ctx.arc(-eyeSpread + eyeSize * 0.3, eyeOffsetY - eyeSize * 0.3, eyeSize * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eyeSpread + eyeSize * 0.3, eyeOffsetY - eyeSize * 0.3, eyeSize * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth
+  const mouthY = r * 0.32;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = r * 0.08;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (ball.face === 'happy') {
+    // Big smile
+    ctx.arc(0, mouthY - r*0.05, r * 0.28, 0.2, Math.PI - 0.2);
+  } else if (ball.face === 'squished') {
+    // Grimace / flat mouth
+    ctx.moveTo(-r * 0.25, mouthY + r*0.05);
+    ctx.lineTo(r * 0.25, mouthY + r*0.05);
+  } else {
+    // Small smile
+    ctx.arc(0, mouthY, r * 0.2, 0.3, Math.PI - 0.3);
+  }
+  ctx.stroke();
+
+  // Sweat drop when near max
+  if (r / ball.maxR > 0.8) {
+    ctx.fillStyle = '#64b5f6';
+    ctx.beginPath();
+    ctx.arc(r * 0.6, -r * 0.4, r * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ─── Draw Obstacle ───
+function drawObstacle(obs) {
+  const { x, width, gapY, gapH, color, accent } = obs;
+
+  // Top wall
+  const topH = gapY;
+  drawWallSegment(x, 0, width, topH, color, accent, 'top');
+
+  // Bottom wall
+  const botY = gapY + gapH;
+  const botH = H - botY;
+  drawWallSegment(x, botY, width, botH, color, accent, 'bottom');
+
+  // Gap indicator lines (subtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(x, gapY);
+  ctx.lineTo(x + width, gapY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, gapY + gapH);
+  ctx.lineTo(x + width, gapY + gapH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawWallSegment(x, y, w, h, color, accent, side) {
+  if (h <= 0) return;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+
+  // Soft stripe texture
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  const stripeH = 22;
+  for (let by = y; by < y + h; by += stripeH * 2) {
+    ctx.fillRect(x, by, w, Math.min(stripeH, y + h - by));
+  }
+
+  // Edge highlight (lighter top/bottom edge)
+  ctx.fillStyle = accent;
+  if (side === 'top') {
+    ctx.fillRect(x, y + h - 5, w, 5);
+  } else {
+    ctx.fillRect(x, y, w, 5);
+  }
+
+  // Left shine
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(x, y, 4, h);
+}
+
+function drawHUD() {
+  ctx.save();
+  ctx.font = 'bold 48px "Fredoka One", cursive';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText(score, W/2 + 2, 68);
+  ctx.fillStyle = '#3dbfa0';
+  ctx.fillText(score, W/2, 66);
+
+  ctx.font = 'bold 13px Nunito, sans-serif';
+  ctx.fillStyle = 'rgba(100,120,150,0.7)';
+  ctx.fillText(`${LANGS[lang].bestHUD} ${bestScore}`, W/2, 88);
+  ctx.restore();
+}
+
+// ─── Physics ───
+function update() {
+  gameTime++;
+
+  // Ball size + vertical movement
+  const growSpeed = 0.7;
+  const shrinkSpeed = 0.7;
+  if (pressing) {
+    ball.r = Math.min(ball.r + growSpeed, ball.maxR);
+    ball.face = ball.r > ball.maxR * 0.7 ? 'squished' : 'normal';
+    ball.vy += (-0.38 - ball.vy * 0.12); // float up
+  } else {
+    ball.r = Math.max(ball.r - shrinkSpeed, ball.minR);
+    ball.face = ball.r < ball.minR * 1.4 ? 'happy' : 'normal';
+    ball.vy += 0.28; // gravity pulls down
+  }
+  ball.vy = Math.max(-8, Math.min(ball.vy, 10));
+  ball.y += ball.vy;
+
+  // Squish animation
+  const ratio = (ball.r - ball.minR) / (ball.maxR - ball.minR);
+  ball.squishX = 1 + ratio * 0.12;
+  ball.squishY = 1 - ratio * 0.08;
+
+  // Spawn obstacles
+  spawnTimer++;
+  const interval = Math.max(SPAWN_INTERVAL_START - gameTime * 0.05, 68);
+  if (spawnTimer >= interval) {
+    spawnTimer = 0;
+    spawnObstacle();
+  }
+
+  // Move & check obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    obs.x -= obs.speed;
+
+    // Score when passed
+    if (!obs.scored && obs.x + obs.width < ball.x) {
+      obs.scored = true;
+      score++;
+      if (score > bestScore) bestScore = score;
+      spawnPassParticles(ball.x, ball.y);
+    }
+
+    // Remove off screen
+    if (obs.x + obs.width < -20) {
+      obstacles.splice(i, 1);
+      continue;
+    }
+
+    // Collision: ball overlapping obstacle?
+    if (ball.x + ball.r * 0.85 > obs.x && ball.x - ball.r * 0.85 < obs.x + obs.width) {
+      // Top wall hit
+      if (ball.y - ball.r * 0.85 < obs.gapY) {
+        triggerDeath();
+        return;
+      }
+      // Bottom wall hit
+      if (ball.y + ball.r * 0.85 > obs.gapY + obs.gapH) {
+        triggerDeath();
+        return;
+      }
+    }
+  }
+
+  // Screen edge
+  if (ball.y - ball.r < 0 || ball.y + ball.r > H) {
+    triggerDeath();
+    return;
+  }
+
+  updateParticles();
+}
+
+function triggerDeath() {
+  state = 'dead';
+  spawnParticles(ball.x, ball.y, '#FFE135', 20);
+  spawnParticles(ball.x, ball.y, '#ff6b6b', 10);
+  spawnParticles(ball.x, ball.y, '#fff', 8);
+
+  setTimeout(() => showDeathScreen(), 600);
+}
+
+function showDeathScreen() {
+  const t = LANGS[lang];
+  const isNew = score >= bestScore && score > 0;
+  if (isNew) localStorage.setItem('squeezeBest', bestScore);
+
+  document.getElementById('finalScore').textContent = score;
+  const bestEl = document.getElementById('bestScoreDisplay');
+  bestEl.textContent = isNew ? '' : `${t.bestPrefix}${bestScore}`;
+
+  const pct = Math.min(Math.round(50 + score * 3.5), 99);
+  document.getElementById('percentileDisplay').textContent =
+    score > 0 ? t.percentile(pct) : '';
+
+  const rec = document.getElementById('newRecord');
+  rec.textContent = t.newRecord;
+  rec.classList.toggle('hidden', !isNew);
+
+  document.getElementById('deathScreen').classList.remove('hidden');
+  document.getElementById('deathEmoji').style.animation = 'none';
+  setTimeout(() => document.getElementById('deathEmoji').style.animation = '', 10);
+}
+
+// ─── Render Loop ───
+function render() {
+  drawBackground();
+  obstacles.forEach(drawObstacle);
+  drawBall();
+  drawParticles();
+  drawHUD();
+}
+
+function loop() {
+  if (state === 'playing') {
+    update();
+    render();
+  } else if (state === 'dead') {
+    // Keep drawing particles
+    drawBackground();
+    obstacles.forEach(drawObstacle);
+    drawParticles();
+    updateParticles();
+  }
+  animFrame = requestAnimationFrame(loop);
+}
+
+// ─── Game Start / Restart ───
+function startGame() {
+  state = 'playing';
+  score = 0;
+  gameTime = 0;
+  spawnTimer = 0;
+  obstacles = [];
+  particles = [];
+  pressing = false;
+  ball.r = 28;
+  ball.y = H / 2;
+  ball.vy = 0;
+  ball.face = 'normal';
+  bgHue = 220;
+
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('deathScreen').classList.add('hidden');
+}
+
+// ─── Input ───
+function onPressStart(e) {
+  e.preventDefault();
+  if (state === 'playing') pressing = true;
+}
+function onPressEnd(e) {
+  e.preventDefault();
+  pressing = false;
+}
+
+canvas.addEventListener('mousedown', onPressStart);
+canvas.addEventListener('mouseup', onPressEnd);
+canvas.addEventListener('mouseleave', onPressEnd);
+canvas.addEventListener('touchstart', onPressStart, { passive: false });
+canvas.addEventListener('touchend', onPressEnd, { passive: false });
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('retryBtn').addEventListener('click', () => {
+  document.getElementById('deathScreen').classList.add('hidden');
+  startGame();
+});
+
+// Prevent page scroll on touch
+document.body.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+// Draw initial menu background
+function menuLoop() {
+  if (state !== 'menu') return;
+  drawBackground();
+  requestAnimationFrame(menuLoop);
+}
+menuLoop();
+loop();
+</script>
+</body>
+</html>
